@@ -18,9 +18,9 @@
 package utils
 
 import (
-	"crypto/ecdsa"
 	"fmt"
 	"math/big"
+
 	"strconv"
 
 	"neweth/common"
@@ -28,7 +28,6 @@ import (
 	"neweth/core"
 	"neweth/core/state"
 	"neweth/eth"
-	"neweth/eth/downloader"
 	"neweth/eth/gasprice"
 	"neweth/node"
 	"os"
@@ -36,8 +35,11 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/Loopring/relay/log"
-	"github.com/seeleteam/go-seele/p2p"
+	"neweth/params"
+
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -78,7 +80,7 @@ func NewApp(gitCommit, usage string) *cli.App {
 	app.Author = ""
 	//app.Authors = nil
 	app.Email = ""
-	app.Version = params.Version
+	app.Version = "1.0"
 	if len(gitCommit) >= 8 {
 		app.Version += "-" + gitCommit[:8]
 	}
@@ -325,10 +327,7 @@ var (
 		Name:  "ethstats",
 		Usage: "Reporting URL of a ethstats service (nodename:secret@host:port)",
 	}
-	MetricsEnabledFlag = cli.BoolFlag{
-		Name:  metrics.MetricsEnabledFlag,
-		Usage: "Enable metrics collection and reporting",
-	}
+
 	FakePoWFlag = cli.BoolFlag{
 		Name:  "fakepow",
 		Usage: "Disables proof-of-work verification",
@@ -517,28 +516,28 @@ func MakeDataDir(ctx *cli.Context) string {
 }
 
 //从命令行参数来配置本节点的私钥
-func setNodeKey(ctx *cli.Context, cfg *p2p.Config) {
-	var (
-		hex  = ctx.GlobalString(NodeKeyHexFlag.Name)
-		file = ctx.GlobalString(NodeKeyFileFlag.Name)
-		key  *ecdsa.PrivateKey
-		err  error
-	)
-	switch {
-	case file != "" && hex != "":
-		Fatalf("Options %q and %q are mutually exclusive", NodeKeyFileFlag.Name, NodeKeyHexFlag.Name)
-	case file != "":
-		if key, err = crypto.LoadECDSA(file); err != nil {
-			Fatalf("Option %q: %v", NodeKeyFileFlag.Name, err)
-		}
-		cfg.PrivateKey = key
-	case hex != "":
-		if key, err = crypto.HexToECDSA(hex); err != nil {
-			Fatalf("Option %q: %v", NodeKeyHexFlag.Name, err)
-		}
-		cfg.PrivateKey = key
-	}
-}
+// func setNodeKey(ctx *cli.Context, cfg *p2p.Config) {
+// 	var (
+// 		hex  = ctx.GlobalString(NodeKeyHexFlag.Name)
+// 		file = ctx.GlobalString(NodeKeyFileFlag.Name)
+// 		key  *ecdsa.PrivateKey
+// 		err  error
+// 	)
+// 	switch {
+// 	case file != "" && hex != "":
+// 		Fatalf("Options %q and %q are mutually exclusive", NodeKeyFileFlag.Name, NodeKeyHexFlag.Name)
+// 	case file != "":
+// 		if key, err = crypto.LoadECDSA(file); err != nil {
+// 			Fatalf("Option %q: %v", NodeKeyFileFlag.Name, err)
+// 		}
+// 		cfg.PrivateKey = key
+// 	case hex != "":
+// 		if key, err = crypto.HexToECDSA(hex); err != nil {
+// 			Fatalf("Option %q: %v", NodeKeyHexFlag.Name, err)
+// 		}
+// 		cfg.PrivateKey = key
+// 	}
+// }
 
 // setNodeUserIdent creates the user identifier from CLI flags.
 func setNodeUserIdent(ctx *cli.Context, cfg *node.Config) {
@@ -548,33 +547,33 @@ func setNodeUserIdent(ctx *cli.Context, cfg *node.Config) {
 }
 
 //NEED DO!!暂时不填
-func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
-	urls := params.MainnetBootnodes
-	switch {
-	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV4Flag.Name):
-		if ctx.GlobalIsSet(BootnodesV4Flag.Name) {
-			urls = strings.Split(ctx.GlobalString(BootnodesV4Flag.Name), ",")
-		} else {
-			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
-		}
-	case ctx.GlobalBool(TestnetFlag.Name):
-		urls = params.TestnetBootnodes
-	case ctx.GlobalBool(RinkebyFlag.Name):
-		urls = params.RinkebyBootnodes
-	case cfg.BootstrapNodes != nil:
-		return // already set, don't apply defaults.
-	}
+// func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
+// 	urls := params.MainnetBootnodes
+// 	switch {
+// 	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV4Flag.Name):
+// 		if ctx.GlobalIsSet(BootnodesV4Flag.Name) {
+// 			urls = strings.Split(ctx.GlobalString(BootnodesV4Flag.Name), ",")
+// 		} else {
+// 			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
+// 		}
+// 	case ctx.GlobalBool(TestnetFlag.Name):
+// 		urls = params.TestnetBootnodes
+// 	case ctx.GlobalBool(RinkebyFlag.Name):
+// 		urls = params.RinkebyBootnodes
+// 	case cfg.BootstrapNodes != nil:
+// 		return // already set, don't apply defaults.
+// 	}
 
-	cfg.BootstrapNodes = make([]*discover.Node, 0, len(urls))
-	for _, url := range urls {
-		node, err := discover.ParseNode(url)
-		if err != nil {
-			log.Error("Bootstrap URL invalid", "enode", url, "err", err)
-			continue
-		}
-		cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
-	}
-}
+// 	cfg.BootstrapNodes = make([]*discover.Node, 0, len(urls))
+// 	for _, url := range urls {
+// 		node, err := discover.ParseNode(url)
+// 		if err != nil {
+// 			log.Error("Bootstrap URL invalid", "enode", url, "err", err)
+// 			continue
+// 		}
+// 		cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
+// 	}
+// }
 
 //暂时不填
 // func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
@@ -604,22 +603,22 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 // }
 
 //TCP 端口配置
-func setListenAddress(ctx *cli.Context, cfg *p2p.Config) {
-	if ctx.GlobalIsSet(ListenPortFlag.Name) {
-		cfg.ListenAddr = fmt.Sprintf(":%d", ctx.GlobalInt(ListenPortFlag.Name))
-	}
-}
+// func setListenAddress(ctx *cli.Context, cfg *p2p.Config) {
+// 	if ctx.GlobalIsSet(ListenPortFlag.Name) {
+// 		cfg.ListenAddr = fmt.Sprintf(":%d", ctx.GlobalInt(ListenPortFlag.Name))
+// 	}
+// }
 
 //nat 配置
-func setNAT(ctx *cli.Context, cfg *p2p.Config) {
-	if ctx.GlobalIsSet(NATFlag.Name) {
-		natif, err := nat.Parse(ctx.GlobalString(NATFlag.Name))
-		if err != nil {
-			Fatalf("Option %s: %v", NATFlag.Name, err)
-		}
-		cfg.NAT = natif
-	}
-}
+// func setNAT(ctx *cli.Context, cfg *p2p.Config) {
+// 	if ctx.GlobalIsSet(NATFlag.Name) {
+// 		natif, err := nat.Parse(ctx.GlobalString(NATFlag.Name))
+// 		if err != nil {
+// 			Fatalf("Option %s: %v", NATFlag.Name, err)
+// 		}
+// 		cfg.NAT = natif
+// 	}
+// }
 
 // splitAndTrim splits input separated by a comma
 // and trims excessive white space from the substrings.
@@ -736,72 +735,72 @@ func setEtherbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *eth.Config) {
 	}
 }
 
-func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
-	setNodeKey(ctx, cfg)
-	setNAT(ctx, cfg)
-	setListenAddress(ctx, cfg)
-	//setBootstrapNodes(ctx, cfg)
-	//setBootstrapNodesV5(ctx, cfg)
+// func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
+// 	setNodeKey(ctx, cfg)
+// 	setNAT(ctx, cfg)
+// 	setListenAddress(ctx, cfg)
+// 	//setBootstrapNodes(ctx, cfg)
+// 	//setBootstrapNodesV5(ctx, cfg)
 
-	if ctx.GlobalIsSet(MaxPeersFlag.Name) {
-		cfg.MaxPeers = ctx.GlobalInt(MaxPeersFlag.Name)
-		if lightServer && !ctx.GlobalIsSet(LightPeersFlag.Name) {
-			cfg.MaxPeers += lightPeers
-		}
-	} else {
-		if lightServer {
-			cfg.MaxPeers += lightPeers
-		}
-		if lightClient && ctx.GlobalIsSet(LightPeersFlag.Name) && cfg.MaxPeers < lightPeers {
-			cfg.MaxPeers = lightPeers
-		}
-	}
-	if !(lightClient || lightServer) {
-		lightPeers = 0
-	}
-	ethPeers := cfg.MaxPeers - lightPeers
-	if lightClient {
-		ethPeers = 0
-	}
-	log.Info("Maximum peer count", "ETH", ethPeers, "LES", lightPeers, "total", cfg.MaxPeers)
+// 	if ctx.GlobalIsSet(MaxPeersFlag.Name) {
+// 		cfg.MaxPeers = ctx.GlobalInt(MaxPeersFlag.Name)
+// 		if lightServer && !ctx.GlobalIsSet(LightPeersFlag.Name) {
+// 			cfg.MaxPeers += lightPeers
+// 		}
+// 	} else {
+// 		if lightServer {
+// 			cfg.MaxPeers += lightPeers
+// 		}
+// 		if lightClient && ctx.GlobalIsSet(LightPeersFlag.Name) && cfg.MaxPeers < lightPeers {
+// 			cfg.MaxPeers = lightPeers
+// 		}
+// 	}
+// 	if !(lightClient || lightServer) {
+// 		lightPeers = 0
+// 	}
+// 	ethPeers := cfg.MaxPeers - lightPeers
+// 	if lightClient {
+// 		ethPeers = 0
+// 	}
+// 	log.Info("Maximum peer count", "ETH", ethPeers, "LES", lightPeers, "total", cfg.MaxPeers)
 
-	if ctx.GlobalIsSet(MaxPendingPeersFlag.Name) {
-		cfg.MaxPendingPeers = ctx.GlobalInt(MaxPendingPeersFlag.Name)
-	}
-	if ctx.GlobalIsSet(NoDiscoverFlag.Name) || lightClient {
-		cfg.NoDiscovery = true
-	}
+// 	if ctx.GlobalIsSet(MaxPendingPeersFlag.Name) {
+// 		cfg.MaxPendingPeers = ctx.GlobalInt(MaxPendingPeersFlag.Name)
+// 	}
+// 	if ctx.GlobalIsSet(NoDiscoverFlag.Name) || lightClient {
+// 		cfg.NoDiscovery = true
+// 	}
 
-	// if we're running a light client or server, force enable the v5 peer discovery
-	// unless it is explicitly disabled with --nodiscover note that explicitly specifying
-	// --v5disc overrides --nodiscover, in which case the later only disables v4 discovery
-	forceV5Discovery := (lightClient || lightServer) && !ctx.GlobalBool(NoDiscoverFlag.Name)
-	if ctx.GlobalIsSet(DiscoveryV5Flag.Name) {
-		cfg.DiscoveryV5 = ctx.GlobalBool(DiscoveryV5Flag.Name)
-	} else if forceV5Discovery {
-		cfg.DiscoveryV5 = true
-	}
+// 	// if we're running a light client or server, force enable the v5 peer discovery
+// 	// unless it is explicitly disabled with --nodiscover note that explicitly specifying
+// 	// --v5disc overrides --nodiscover, in which case the later only disables v4 discovery
+// 	forceV5Discovery := (lightClient || lightServer) && !ctx.GlobalBool(NoDiscoverFlag.Name)
+// 	if ctx.GlobalIsSet(DiscoveryV5Flag.Name) {
+// 		cfg.DiscoveryV5 = ctx.GlobalBool(DiscoveryV5Flag.Name)
+// 	} else if forceV5Discovery {
+// 		cfg.DiscoveryV5 = true
+// 	}
 
-	if netrestrict := ctx.GlobalString(NetrestrictFlag.Name); netrestrict != "" {
-		list, err := netutil.ParseNetlist(netrestrict)
-		if err != nil {
-			Fatalf("Option %q: %v", NetrestrictFlag.Name, err)
-		}
-		cfg.NetRestrict = list
-	}
+// 	if netrestrict := ctx.GlobalString(NetrestrictFlag.Name); netrestrict != "" {
+// 		list, err := netutil.ParseNetlist(netrestrict)
+// 		if err != nil {
+// 			Fatalf("Option %q: %v", NetrestrictFlag.Name, err)
+// 		}
+// 		cfg.NetRestrict = list
+// 	}
 
-	if ctx.GlobalBool(DeveloperFlag.Name) {
-		// --dev mode can't use p2p networking.
-		cfg.MaxPeers = 0
-		cfg.ListenAddr = ":0"
-		cfg.NoDiscovery = true
-		cfg.DiscoveryV5 = false
-	}
-}
+// 	if ctx.GlobalBool(DeveloperFlag.Name) {
+// 		// --dev mode can't use p2p networking.
+// 		cfg.MaxPeers = 0
+// 		cfg.ListenAddr = ":0"
+// 		cfg.NoDiscovery = true
+// 		cfg.DiscoveryV5 = false
+// 	}
+// }
 
 // SetNodeConfig applies node-related command line flags to the config.
 func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
-	SetP2PConfig(ctx, &cfg.P2P)
+	//SetP2PConfig(ctx, &cfg.P2P)
 	setIPC(ctx, cfg)
 	setHTTP(ctx, cfg)
 	setWS(ctx, cfg)
@@ -944,14 +943,14 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	setTxPool(ctx, &cfg.TxPool)
 	setEthash(ctx, cfg)
 
-	switch {
-	case ctx.GlobalIsSet(SyncModeFlag.Name):
-		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
-	case ctx.GlobalBool(FastSyncFlag.Name):
-		cfg.SyncMode = downloader.FastSync
-	case ctx.GlobalBool(LightModeFlag.Name):
-		cfg.SyncMode = downloader.LightSync
-	}
+	// switch {
+	// case ctx.GlobalIsSet(SyncModeFlag.Name):
+	// 	cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
+	// case ctx.GlobalBool(FastSyncFlag.Name):
+	// 	cfg.SyncMode = downloader.FastSync
+	// case ctx.GlobalBool(LightModeFlag.Name):
+	// 	cfg.SyncMode = downloader.LightSync
+	// }
 	if ctx.GlobalIsSet(LightServFlag.Name) {
 		cfg.LightServ = ctx.GlobalInt(LightServFlag.Name)
 	}

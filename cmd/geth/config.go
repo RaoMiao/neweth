@@ -23,8 +23,6 @@ import (
 
 	"neweth/eth"
 	"neweth/node"
-
-	"github.com/Loopring/relay/params"
 )
 
 var (
@@ -47,7 +45,7 @@ type gethConfig struct {
 func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
-	cfg.Version = params.VersionWithCommit(gitCommit)
+	cfg.Version = "1.0"
 	cfg.HTTPModules = append(cfg.HTTPModules, "eth", "shh")
 	cfg.WSModules = append(cfg.WSModules, "eth", "shh")
 	cfg.IPCPath = "geth.ipc"

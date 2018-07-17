@@ -22,9 +22,9 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
+	"neweth/common"
+	"neweth/crypto"
+	"neweth/rlp"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)

@@ -31,6 +31,7 @@ import (
 	"neweth/node"
 
 	"github.com/elastic/gosigar"
+	"github.com/ethereum/go-ethereum/console"
 
 	"gopkg.in/urfave/cli.v1"
 )
