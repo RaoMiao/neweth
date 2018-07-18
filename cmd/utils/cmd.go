@@ -68,7 +68,7 @@ func StartNode(stack *node.Node) {
 				//log.Warn("Already shutting down, interrupt more to panic.", "times", i-1)
 			}
 		}
-		debug.Exit() // ensure trace and CPU profile data is flushed.
-		debug.LoudPanic("boom")
+		// debug.Exit() // ensure trace and CPU profile data is flushed.
+		// debug.LoudPanic("boom")
 	}()
 }

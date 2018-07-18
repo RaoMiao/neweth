@@ -25,16 +25,15 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rlp"
+	"neweth/common"
+	"neweth/common/hexutil"
+	"neweth/common/math"
+	"neweth/core/rawdb"
+	"neweth/core/state"
+	"neweth/core/types"
+	"neweth/ethdb"
+	"neweth/params"
+	"neweth/rlp"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -159,10 +158,10 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 	stored := rawdb.ReadCanonicalHash(db, 0)
 	if (stored == common.Hash{}) {
 		if genesis == nil {
-			log.Info("Writing default main-net genesis block")
+			//log.Info("Writing default main-net genesis block")
 			genesis = DefaultGenesisBlock()
 		} else {
-			log.Info("Writing custom genesis block")
+			//log.Info("Writing custom genesis block")
 		}
 		block, err := genesis.Commit(db)
 		return genesis.Config, block.Hash(), err
@@ -180,7 +179,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 	newcfg := genesis.configOrDefault(stored)
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
-		log.Warn("Found genesis block without chain config")
+		//log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}

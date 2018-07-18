@@ -25,11 +25,10 @@ import (
 
 	"neweth/common"
 
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
+	"neweth/core/rawdb"
+	"neweth/core/types"
+	"neweth/ethdb"
+	"neweth/event"
 )
 
 // ChainIndexerBackend defines the methods needed to process chain segments in
@@ -85,7 +84,7 @@ type ChainIndexer struct {
 
 	throttling time.Duration // Disk throttling to prevent a heavy upgrade from hogging resources
 
-	log  log.Logger
+	//log  log.Logger
 	lock sync.RWMutex
 }
 
@@ -102,7 +101,7 @@ func NewChainIndexer(chainDb, indexDb ethdb.Database, backend ChainIndexerBacken
 		sectionSize: section,
 		confirmsReq: confirm,
 		throttling:  throttling,
-		log:         log.New("type", kind),
+		//log:         log.New("type", kind),
 	}
 	// Initialize database dependent fields and start the updater
 	c.loadValidSections()
@@ -284,7 +283,7 @@ func (c *ChainIndexer) updateLoop() {
 				if time.Since(updated) > 8*time.Second {
 					if c.knownSections > c.storedSections+1 {
 						updating = true
-						c.log.Info("Upgrading chain index", "percentage", c.storedSections*100/c.knownSections)
+						//c.log.Info("Upgrading chain index", "percentage", c.storedSections*100/c.knownSections)
 					}
 					updated = time.Now()
 				}
@@ -298,7 +297,7 @@ func (c *ChainIndexer) updateLoop() {
 				c.lock.Unlock()
 				newHead, err := c.processSection(section, oldHead)
 				if err != nil {
-					c.log.Error("Section processing failed", "error", err)
+					//c.log.Error("Section processing failed", "error", err)
 				}
 				c.lock.Lock()
 
@@ -308,17 +307,17 @@ func (c *ChainIndexer) updateLoop() {
 					c.setValidSections(section + 1)
 					if c.storedSections == c.knownSections && updating {
 						updating = false
-						c.log.Info("Finished upgrading chain index")
+						//c.log.Info("Finished upgrading chain index")
 					}
 
 					c.cascadedHead = c.storedSections*c.sectionSize - 1
 					for _, child := range c.children {
-						c.log.Trace("Cascading chain index update", "head", c.cascadedHead)
+						//c.log.Trace("Cascading chain index update", "head", c.cascadedHead)
 						child.newHead(c.cascadedHead, false)
 					}
 				} else {
 					// If processing failed, don't retry until further notification
-					c.log.Debug("Chain index processing failed", "section", section, "err", err)
+					//c.log.Debug("Chain index processing failed", "section", section, "err", err)
 					c.knownSections = c.storedSections
 				}
 			}
@@ -341,7 +340,7 @@ func (c *ChainIndexer) updateLoop() {
 // held while processing, the continuity can be broken by a long reorg, in which
 // case the function returns with an error.
 func (c *ChainIndexer) processSection(section uint64, lastHead common.Hash) (common.Hash, error) {
-	c.log.Trace("Processing new chain section", "section", section)
+	//c.log.Trace("Processing new chain section", "section", section)
 
 	// Reset and partial processing
 
@@ -365,7 +364,7 @@ func (c *ChainIndexer) processSection(section uint64, lastHead common.Hash) (com
 		lastHead = header.Hash()
 	}
 	if err := c.backend.Commit(); err != nil {
-		c.log.Error("Section commit failed", "error", err)
+		//c.log.Error("Section commit failed", "error", err)
 		return common.Hash{}, err
 	}
 	return lastHead, nil

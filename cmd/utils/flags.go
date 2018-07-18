@@ -19,11 +19,7 @@ package utils
 
 import (
 	"fmt"
-	"math/big"
 
-	"strconv"
-
-	"neweth/common"
 	"neweth/common/fdlimit"
 	"neweth/core"
 	"neweth/core/state"
@@ -37,9 +33,7 @@ import (
 
 	"neweth/params"
 
-	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
-
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -150,12 +144,12 @@ var (
 		Name:  "light",
 		Usage: "Enable light client mode (replaced by --syncmode)",
 	}
-	defaultSyncMode = eth.DefaultConfig.SyncMode
-	SyncModeFlag    = TextMarshalerFlag{
-		Name:  "syncmode",
-		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
-		Value: &defaultSyncMode,
-	}
+	// defaultSyncMode = eth.DefaultConfig.SyncMode
+	// SyncModeFlag    = TextMarshalerFlag{
+	// 	Name:  "syncmode",
+	// 	Usage: `Blockchain sync mode ("fast", "full", or "light")`,
+	// 	Value: &defaultSyncMode,
+	// }
 	GCModeFlag = cli.StringFlag{
 		Name:  "gcmode",
 		Usage: `Blockchain garbage collection mode ("full", "archive")`,
@@ -486,16 +480,6 @@ var (
 		Name:  "shh",
 		Usage: "Enable Whisper",
 	}
-	WhisperMaxMessageSizeFlag = cli.IntFlag{
-		Name:  "shh.maxmessagesize",
-		Usage: "Max message size accepted",
-		Value: int(whisper.DefaultMaxMessageSize),
-	}
-	WhisperMinPOWFlag = cli.Float64Flag{
-		Name:  "shh.pow",
-		Usage: "Minimum POW accepted",
-		Value: whisper.DefaultMinimumPoW,
-	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -700,39 +684,39 @@ func makeDatabaseHandles() int {
 	return limit / 2 // Leave half for networking and other stuff
 }
 
-func MakeAddress(ks *keystore.KeyStore, account string) (accounts.Account, error) {
-	// If the specified account is a valid address, return it
-	if common.IsHexAddress(account) {
-		return accounts.Account{Address: common.HexToAddress(account)}, nil
-	}
-	// Otherwise try to interpret the account as a keystore index
-	index, err := strconv.Atoi(account)
-	if err != nil || index < 0 {
-		return accounts.Account{}, fmt.Errorf("invalid account address or index %q", account)
-	}
-	// log.Warn("-------------------------------------------------------------------")
-	// log.Warn("Referring to accounts by order in the keystore folder is dangerous!")
-	// log.Warn("This functionality is deprecated and will be removed in the future!")
-	// log.Warn("Please use explicit addresses! (can search via `geth account list`)")
-	// log.Warn("-------------------------------------------------------------------")
+// func MakeAddress(ks *keystore.KeyStore, account string) (accounts.Account, error) {
+// 	// If the specified account is a valid address, return it
+// 	if common.IsHexAddress(account) {
+// 		return accounts.Account{Address: common.HexToAddress(account)}, nil
+// 	}
+// 	// Otherwise try to interpret the account as a keystore index
+// 	index, err := strconv.Atoi(account)
+// 	if err != nil || index < 0 {
+// 		return accounts.Account{}, fmt.Errorf("invalid account address or index %q", account)
+// 	}
+// 	// log.Warn("-------------------------------------------------------------------")
+// 	// log.Warn("Referring to accounts by order in the keystore folder is dangerous!")
+// 	// log.Warn("This functionality is deprecated and will be removed in the future!")
+// 	// log.Warn("Please use explicit addresses! (can search via `geth account list`)")
+// 	// log.Warn("-------------------------------------------------------------------")
 
-	accs := ks.Accounts()
-	if len(accs) <= index {
-		return accounts.Account{}, fmt.Errorf("index %d higher than number of accounts %d", index, len(accs))
-	}
-	return accs[index], nil
-}
+// 	accs := ks.Accounts()
+// 	if len(accs) <= index {
+// 		return accounts.Account{}, fmt.Errorf("index %d higher than number of accounts %d", index, len(accs))
+// 	}
+// 	return accs[index], nil
+// }
 
 // setEtherbase retrieves the etherbase either from the directly specified
 // command line flags or from the keystore if CLI indexed.
 func setEtherbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *eth.Config) {
-	if ctx.GlobalIsSet(EtherbaseFlag.Name) {
-		account, err := MakeAddress(ks, ctx.GlobalString(EtherbaseFlag.Name))
-		if err != nil {
-			Fatalf("Option %q: %v", EtherbaseFlag.Name, err)
-		}
-		cfg.Etherbase = account.Address
-	}
+	// if ctx.GlobalIsSet(EtherbaseFlag.Name) {
+	// 	account, err := MakeAddress(ks, ctx.GlobalString(EtherbaseFlag.Name))
+	// 	if err != nil {
+	// 		Fatalf("Option %q: %v", EtherbaseFlag.Name, err)
+	// 	}
+	// 	cfg.Etherbase = account.Address
+	// }
 }
 
 // func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
@@ -932,13 +916,9 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
-	checkExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag)
-	checkExclusive(ctx, FastSyncFlag, LightModeFlag, SyncModeFlag)
-	checkExclusive(ctx, LightServFlag, LightModeFlag)
-	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	setEtherbase(ctx, ks, cfg)
+	//ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	//setEtherbase(ctx, ks, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 	setEthash(ctx, cfg)
@@ -1004,31 +984,31 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		}
 		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
 	case ctx.GlobalBool(DeveloperFlag.Name):
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 1337
-		}
-		// Create new developer account or reuse existing one
-		var (
-			developer accounts.Account
-			err       error
-		)
-		if accs := ks.Accounts(); len(accs) > 0 {
-			developer = ks.Accounts()[0]
-		} else {
-			developer, err = ks.NewAccount("")
-			if err != nil {
-				Fatalf("Failed to create developer account: %v", err)
-			}
-		}
-		if err := ks.Unlock(developer, ""); err != nil {
-			Fatalf("Failed to unlock developer account: %v", err)
-		}
+		// if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+		// 	cfg.NetworkId = 1337
+		// }
+		// // Create new developer account or reuse existing one
+		// var (
+		// 	developer accounts.Account
+		// 	err       error
+		// )
+		// if accs := ks.Accounts(); len(accs) > 0 {
+		// 	developer = ks.Accounts()[0]
+		// } else {
+		// 	developer, err = ks.NewAccount("")
+		// 	if err != nil {
+		// 		Fatalf("Failed to create developer account: %v", err)
+		// 	}
+		// }
+		// if err := ks.Unlock(developer, ""); err != nil {
+		// 	Fatalf("Failed to unlock developer account: %v", err)
+		// }
 		//log.Info("Using developer account", "address", developer.Address)
 
-		cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
-		if !ctx.GlobalIsSet(GasPriceFlag.Name) {
-			cfg.GasPrice = big.NewInt(1)
-		}
+		// cfg.Genesis = core.DeveloperGenesisBlock(uint64(ctx.GlobalInt(DeveloperPeriodFlag.Name)), developer.Address)
+		// if !ctx.GlobalIsSet(GasPriceFlag.Name) {
+		// 	cfg.GasPrice = big.NewInt(1)
+		// }
 	}
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {

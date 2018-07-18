@@ -227,31 +227,31 @@ func (n *Node) openDataDir() error {
 // assumptions about the state of the node.
 func (n *Node) startRPC(services map[reflect.Type]Service) error {
 	// Gather all the possible APIs to surface
-	apis := n.apis()
-	for _, service := range services {
-		apis = append(apis, service.APIs()...)
-	}
-	// Start the various API endpoints, terminating all in case of errors
-	if err := n.startInProc(apis); err != nil {
-		return err
-	}
-	if err := n.startIPC(apis); err != nil {
-		n.stopInProc()
-		return err
-	}
-	if err := n.startHTTP(n.httpEndpoint, apis, n.config.HTTPModules, n.config.HTTPCors, n.config.HTTPVirtualHosts); err != nil {
-		n.stopIPC()
-		n.stopInProc()
-		return err
-	}
-	if err := n.startWS(n.wsEndpoint, apis, n.config.WSModules, n.config.WSOrigins, n.config.WSExposeAll); err != nil {
-		n.stopHTTP()
-		n.stopIPC()
-		n.stopInProc()
-		return err
-	}
-	// All API endpoints started successfully
-	n.rpcAPIs = apis
+	// apis := n.apis()
+	// for _, service := range services {
+	// 	apis = append(apis, service.APIs()...)
+	// }
+	// // Start the various API endpoints, terminating all in case of errors
+	// if err := n.startInProc(apis); err != nil {
+	// 	return err
+	// }
+	// if err := n.startIPC(apis); err != nil {
+	// 	n.stopInProc()
+	// 	return err
+	// }
+	// if err := n.startHTTP(n.httpEndpoint, apis, n.config.HTTPModules, n.config.HTTPCors, n.config.HTTPVirtualHosts); err != nil {
+	// 	n.stopIPC()
+	// 	n.stopInProc()
+	// 	return err
+	// }
+	// if err := n.startWS(n.wsEndpoint, apis, n.config.WSModules, n.config.WSOrigins, n.config.WSExposeAll); err != nil {
+	// 	n.stopHTTP()
+	// 	n.stopIPC()
+	// 	n.stopInProc()
+	// 	return err
+	// }
+	// // All API endpoints started successfully
+	// n.rpcAPIs = apis
 	return nil
 }
 

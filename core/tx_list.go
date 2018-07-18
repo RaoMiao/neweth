@@ -22,9 +22,8 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
+	"neweth/common"
+	"neweth/core/types"
 )
 
 // nonceHeap is a heap.Interface implementation over 64bit unsigned integers for
@@ -485,7 +484,7 @@ func (l *txPricedList) Underpriced(tx *types.Transaction, local *accountSet) boo
 	}
 	// Check if the transaction is underpriced or not
 	if len(*l.items) == 0 {
-		log.Error("Pricing query for empty pool") // This cannot happen, print to catch programming errors
+		//log.Error("Pricing query for empty pool") // This cannot happen, print to catch programming errors
 		return false
 	}
 	cheapest := []*types.Transaction(*l.items)[0]

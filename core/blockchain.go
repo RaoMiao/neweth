@@ -29,6 +29,7 @@ import (
 
 	"neweth/common"
 	"neweth/common/mclock"
+	"neweth/consensus"
 	"neweth/core/rawdb"
 	"neweth/core/state"
 	"neweth/core/types"
@@ -36,12 +37,10 @@ import (
 	"neweth/crypto"
 	"neweth/ethdb"
 	"neweth/event"
+
 	"neweth/params"
 	"neweth/rlp"
 	"neweth/trie"
-
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/hashicorp/golang-lru"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
@@ -122,7 +121,7 @@ type BlockChain struct {
 	procInterrupt int32          // interrupt signaler for block processing
 	wg            sync.WaitGroup // chain processing wait group for shutting down
 
-	//engine    consensus.Engine
+	engine    consensus.Engine
 	processor Processor // block processor interface
 	validator Validator // block and state validator interface
 	vmConfig  vm.Config
@@ -244,11 +243,15 @@ func (bc *BlockChain) loadLastState() error {
 	}
 
 	// Issue a status log for the user
-	currentFastBlock := bc.CurrentFastBlock()
+	//currentFastBlock := bc.CurrentFastBlock()
 
-	headerTd := bc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64())
-	blockTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
-	fastTd := bc.GetTd(currentFastBlock.Hash(), currentFastBlock.NumberU64())
+	//headerTd := bc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64())
+	//blockTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
+	//fastTd := bc.GetTd(currentFastBlock.Hash(), currentFastBlock.NumberU64())
+
+	//log.Info("Loaded most recent local header", "number", currentHeader.Number, "hash", currentHeader.Hash(), "td", headerTd)
+	//log.Info("Loaded most recent local full block", "number", currentBlock.Number(), "hash", currentBlock.Hash(), "td", blockTd)
+	//log.Info("Loaded most recent local fast block", "number", currentFastBlock.Number(), "hash", currentFastBlock.Hash(), "td", fastTd)
 
 	return nil
 }
@@ -258,6 +261,7 @@ func (bc *BlockChain) loadLastState() error {
 // though, the head may be further rewound if block bodies are missing (non-archive
 // nodes after a fast sync).
 func (bc *BlockChain) SetHead(head uint64) error {
+	//log.Warn("Rewinding blockchain", "target", head)
 
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
@@ -774,8 +778,8 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	// Do a sanity check that the provided chain is actually ordered and linked
 	for i := 1; i < len(blockChain); i++ {
 		if blockChain[i].NumberU64() != blockChain[i-1].NumberU64()+1 || blockChain[i].ParentHash() != blockChain[i-1].Hash() {
-			/*log.Error("Non contiguous receipt insert", "number", blockChain[i].Number(), "hash", blockChain[i].Hash(), "parent", blockChain[i].ParentHash(),
-			"prevnumber", blockChain[i-1].Number(), "prevhash", blockChain[i-1].Hash())*/
+			//log.Error("Non contiguous receipt insert", "number", blockChain[i].Number(), "hash", blockChain[i].Hash(), "parent", blockChain[i].ParentHash(),
+			//	"prevnumber", blockChain[i-1].Number(), "prevhash", blockChain[i-1].Hash())
 			return 0, fmt.Errorf("non contiguous insert: item %d is #%d [%x…], item %d is #%d [%x…] (parent [%x…])", i-1, blockChain[i-1].NumberU64(),
 				blockChain[i-1].Hash().Bytes()[:4], i, blockChain[i].NumberU64(), blockChain[i].Hash().Bytes()[:4], blockChain[i].ParentHash().Bytes()[:4])
 		}
@@ -783,7 +787,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 
 	var (
 		stats = struct{ processed, ignored int32 }{}
-		start = time.Now()
+		//start = time.Now()
 		bytes = 0
 		batch = bc.db.NewBatch()
 	)
@@ -841,7 +845,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	bc.mu.Unlock()
 
 	// log.Info("Imported new block receipts",
-	// 	"count", stats.processed,
+	// 	"countlog", stats.processed,
 	// 	"elapsed", common.PrettyDuration(time.Since(start)),
 	// 	"number", head.Number(),
 	// 	"hash", head.Hash(),
@@ -1007,8 +1011,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	for i := 1; i < len(chain); i++ {
 		if chain[i].NumberU64() != chain[i-1].NumberU64()+1 || chain[i].ParentHash() != chain[i-1].Hash() {
 			// Chain broke ancestry, log a messge (programming error) and skip insertion
-			//log.Error("Non contiguous block insert", "number", chain[i].Number(), "hash", chain[i].Hash(),
-			//	"parent", chain[i].ParentHash(), "prevnumber", chain[i-1].Number(), "prevhash", chain[i-1].Hash())
+			// log.Error("Non contiguous block insert", "number", chain[i].Number(), "hash", chain[i].Hash(),
+			// 	"parent", chain[i].ParentHash(), "prevnumber", chain[i-1].Number(), "prevhash", chain[i-1].Hash())
 
 			return 0, nil, nil, fmt.Errorf("non contiguous insert: item %d is #%d [%x…], item %d is #%d [%x…] (parent [%x…])", i-1, chain[i-1].NumberU64(),
 				chain[i-1].Hash().Bytes()[:4], i, chain[i].NumberU64(), chain[i].Hash().Bytes()[:4], chain[i].ParentHash().Bytes()[:4])
@@ -1162,7 +1166,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			// 	"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)))
 
 			coalescedLogs = append(coalescedLogs, logs...)
-			blockInsertTimer.UpdateSince(bstart)
+			//blockInsertTimer.UpdateSince(bstart)
 			events = append(events, ChainEvent{block, block.Hash(), logs})
 			lastCanon = block
 
@@ -1173,7 +1177,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			// log.Debug("Inserted forked block", "number", block.Number(), "hash", block.Hash(), "diff", block.Difficulty(), "elapsed",
 			// 	common.PrettyDuration(time.Since(bstart)), "txs", len(block.Transactions()), "gas", block.GasUsed(), "uncles", len(block.Uncles()))
 
-			blockInsertTimer.UpdateSince(bstart)
+			//blockInsertTimer.UpdateSince(bstart)
 			events = append(events, ChainSideEvent{block})
 		}
 		stats.processed++
@@ -1244,9 +1248,9 @@ func countTransactions(chain []*types.Block) (c int) {
 // event about them
 func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	var (
-		newChain    types.Blocks
-		oldChain    types.Blocks
-		commonBlock *types.Block
+		newChain types.Blocks
+		oldChain types.Blocks
+		//commonBlock *types.Block
 		deletedTxs  types.Transactions
 		deletedLogs []*types.Log
 		// collectLogs collects the logs that were generated during the
@@ -1293,7 +1297,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 
 	for {
 		if oldBlock.Hash() == newBlock.Hash() {
-			commonBlock = oldBlock
+			//commonBlock = oldBlock
 			break
 		}
 
@@ -1312,10 +1316,10 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	}
 	// Ensure the user sees large reorgs
 	if len(oldChain) > 0 && len(newChain) > 0 {
-		logFn := log.Debug
-		if len(oldChain) > 63 {
-			logFn = log.Warn
-		}
+		// logFn := log.Debug
+		// if len(oldChain) > 63 {
+		// 	logFn = log.Warn
+		// }
 		// logFn("Chain split detected", "number", commonBlock.Number(), "hash", commonBlock.Hash(),
 		// 	"drop", len(oldChain), "dropfrom", oldChain[0].Hash(), "add", len(newChain), "addfrom", newChain[0].Hash())
 	} else {

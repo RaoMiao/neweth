@@ -428,7 +428,6 @@ func (db *Database) Dereference(root common.Hash) {
 	db.gcnodes += uint64(nodes - len(db.nodes))
 	db.gcsize += storage - db.nodesSize
 	db.gctime += time.Since(start)
-
 }
 
 // dereference is the private locked version of Dereference.
@@ -568,7 +567,7 @@ func (db *Database) Commit(node common.Hash, report bool) error {
 	// by only uncaching existing data when the database write finalizes.
 	db.lock.RLock()
 
-	start := time.Now()
+	//start := time.Now()
 	batch := db.diskdb.NewBatch()
 
 	// Move all of the accumulated preimages into a write batch
@@ -585,7 +584,7 @@ func (db *Database) Commit(node common.Hash, report bool) error {
 		}
 	}
 	// Move the trie itself into the batch, flushing if enough data is accumulated
-	nodes, storage := len(db.nodes), db.nodesSize
+	//_, _ := len(db.nodes), db.nodesSize
 	if err := db.commit(node, batch); err != nil {
 		db.lock.RUnlock()
 		return err

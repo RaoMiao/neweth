@@ -20,7 +20,7 @@ package main
 import (
 	"fmt"
 	"math"
-	"myeth/eth"
+	"neweth/eth"
 	"os"
 	"runtime"
 	godebug "runtime/debug"
@@ -56,10 +56,7 @@ var (
 		utils.DataDirFlag,
 		utils.KeyStoreDirFlag,
 		utils.NoUSBFlag,
-		utils.DashboardEnabledFlag,
-		utils.DashboardAddrFlag,
-		utils.DashboardPortFlag,
-		utils.DashboardRefreshFlag,
+
 		utils.EthashCacheDirFlag,
 		utils.EthashCachesInMemoryFlag,
 		utils.EthashCachesOnDiskFlag,
@@ -78,7 +75,6 @@ var (
 		utils.TxPoolLifetimeFlag,
 		utils.FastSyncFlag,
 		utils.LightModeFlag,
-		utils.SyncModeFlag,
 		utils.GCModeFlag,
 		utils.LightServFlag,
 		utils.LightPeersFlag,
@@ -110,13 +106,11 @@ var (
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
 		utils.EthStatsURLFlag,
-		utils.MetricsEnabledFlag,
 		utils.FakePoWFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
 		utils.GpoPercentileFlag,
 		utils.ExtraDataFlag,
-		configFileFlag,
 	}
 
 	rpcFlags = []cli.Flag{
@@ -148,9 +142,6 @@ func init() {
 	app.Before = func(ctx *cli.Context) error {
 
 		runtime.GOMAXPROCS(1)
-		if err := debug.Setup(ctx); err != nil {
-			return err
-		}
 		// Cap the cache allowance and tune the garbage colelctor
 		var mem gosigar.Mem
 		if err := mem.Get(); err == nil {
@@ -172,7 +163,6 @@ func init() {
 	}
 
 	app.After = func(ctx *cli.Context) error {
-		debug.Exit()
 		console.Stdin.Close() // Resets terminal mode.
 		return nil
 	}
@@ -205,9 +195,6 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 
 	// Mining only makes sense if a full Ethereum node is running
 	// 轻客户端是不挖矿的
-	if ctx.GlobalBool(utils.LightModeFlag.Name) || ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
-		utils.Fatalf("Light clients do not support mining")
-	}
 
 	var ethereum *eth.Ethereum
 	if err := stack.Service(&ethereum); err != nil {

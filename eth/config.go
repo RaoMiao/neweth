@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"neweth/common"
+	"neweth/consensus/ethash"
 
 	"neweth/common/hexutil"
 
@@ -101,7 +102,7 @@ type Config struct {
 	GasPrice     *big.Int
 
 	// Ethash options
-	//Ethash ethash.Config
+	Ethash ethash.Config
 
 	// Transaction pool options
 	TxPool core.TxPoolConfig
