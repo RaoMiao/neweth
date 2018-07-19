@@ -20,6 +20,7 @@ package utils
 import (
 	"fmt"
 
+	"neweth/common"
 	"neweth/common/fdlimit"
 	"neweth/core"
 	"neweth/core/state"
@@ -918,7 +919,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
 
 	//ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	//setEtherbase(ctx, ks, cfg)
+	baseAddress := "a6c4ce490ebfaef21c675dd2f6e6590b6bb3f562"
+	cfg.Etherbase = common.BytesToAddress([]byte(baseAddress))
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 	setEthash(ctx, cfg)

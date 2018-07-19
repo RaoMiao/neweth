@@ -38,13 +38,13 @@ import (
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
-	// Ethash: ethash.Config{
-	// 	CacheDir:       "ethash",
-	// 	CachesInMem:    2,
-	// 	CachesOnDisk:   3,
-	// 	DatasetsInMem:  1,
-	// 	DatasetsOnDisk: 2,
-	// },
+	Ethash: ethash.Config{
+		CacheDir:       "ethash",
+		CachesInMem:    2,
+		CachesOnDisk:   3,
+		DatasetsInMem:  1,
+		DatasetsOnDisk: 2,
+	},
 	NetworkId:     1,
 	LightPeers:    100,
 	DatabaseCache: 768,
